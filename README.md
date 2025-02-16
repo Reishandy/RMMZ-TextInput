@@ -2,7 +2,7 @@
 
 ## A Text Input Plugin for RPG Maker MZ
 
-A feature-rich multi-line text input system that works on both desktop and mobile devices.
+A simple multi-line text input system that works on both desktop and mobile devices with keyboard and touch support.
 
 ![Showcase](showcase.png)
 
