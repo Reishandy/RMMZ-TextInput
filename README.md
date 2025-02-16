@@ -4,6 +4,8 @@
 
 A feature-rich multi-line text input system that works seamlessly on both desktop and mobile devices.
 
+![Showcase](showcase.png)
+
 ## 🌟 Features
 
 - 📝 Multi-line text input with customizable maximum lines
@@ -45,13 +47,15 @@ OpenTextInput
 
 1. Create a new event
 2. Add a "Plugin Command"
-3. Select "TextInput" -> "OpenTextInput"
+3. Select "Text Input" and "Open Text Input"
 4. Configure parameters:
 ```javascript
 Variable ID: 1
 Label: "Enter your message:"
 Max Lines: 5
 ```
+
+![Command](command.png)
 
 ## 🔍 Technical Details
 
