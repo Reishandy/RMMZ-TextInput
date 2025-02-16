@@ -1,8 +1,8 @@
 # RMMZ-TextInput
 
-## A TextInput Plugin for RPG Maker MZ
+## A Text Input Plugin for RPG Maker MZ
 
-A feature-rich multi-line text input system that works seamlessly on both desktop and mobile devices.
+A feature-rich multi-line text input system that works on both desktop and mobile devices.
 
 ![Showcase](showcase.png)
 
