@@ -1,6 +1,6 @@
 /*:
  * @target MZ
- * @plugindesc v1.0.0 A feature-rich multi-line text input system for RPG Maker MZ
+ * @plugindesc v1.0.1 A simple multi-line text input system for RPG Maker MZ
  * @author Reishandy
  * 
  * @param InputWidth
@@ -24,7 +24,7 @@
  * ==========================================================================
  * 
  * Description:
- * This plugin provides a versatile multi-line text input system that works
+ * This plugin provides a multi-line text input system that should works
  * on both desktop and mobile devices.
  * 
  * Features:
@@ -224,15 +224,18 @@
             const maxVisibleLines = Math.floor(
                 (this.height - this.padding * 2) / this.lineHeight()
             );
-            const startLine = Math.max(0, this._lines.length - maxVisibleLines);
-
-            for (
-                let i = 0;
-                i < Math.min(maxVisibleLines, this._lines.length);
-                i++
-            ) {
+            
+            // Calculate which lines should be visible based on cursor position
+            let startLine = this._cursorY - Math.floor(maxVisibleLines / 2);
+            startLine = Math.max(0, startLine);
+            
+            if (startLine + maxVisibleLines > this._lines.length) {
+                startLine = Math.max(0, this._lines.length - maxVisibleLines);
+            }
+        
+            for (let i = 0; i < maxVisibleLines; i++) {
                 const lineIndex = startLine + i;
-                if (this._lines[lineIndex]) {
+                if (lineIndex < this._lines.length && this._lines[lineIndex]) {
                     this.drawTextEx(
                         this._lines[lineIndex],
                         this.padding,
@@ -240,6 +243,8 @@
                     );
                 }
             }
+            
+            this._visibleStartLine = startLine;
         }
 
         update() {
@@ -366,15 +371,30 @@
 
         processChar(char) {
             const line = this._lines[this._cursorY];
-            if (line.length < this.contentsWidth() / 10) {
-                // If character is a backslash, escape it for display
-                const processedChar = char === "\\" ? "\\\\" : char;
-                this._lines[this._cursorY] =
-                    line.slice(0, this._cursorX) +
-                    processedChar +
-                    line.slice(this._cursorX);
-                this._cursorX += processedChar.length; // Move cursor by actual inserted length
+            const processedChar = char === "\\" ? "\\\\" : char;
+            
+            // Calculate the width the line would be with the new character
+            const potentialLine = line.slice(0, this._cursorX) + processedChar + line.slice(this._cursorX);
+            const textWidth = this.textWidth(potentialLine);
+            const maxWidth = this.contentsWidth() - this.padding * 2;
+        
+            if (textWidth > maxWidth) {
+                // Only create new line if we haven't reached max lines
+                if (this._lines.length < this._maxLines) {
+                    const beforeCursor = line.slice(0, this._cursorX);
+                    const afterCursor = line.slice(this._cursorX);
+                    this._lines[this._cursorY] = beforeCursor;
+                    this._lines.splice(this._cursorY + 1, 0, afterCursor);
+                    this._cursorY++;
+                    this._cursorX = 0;
+                    this.processChar(char);
+                }
+                return;
             }
+        
+            this._lines[this._cursorY] = potentialLine;
+            this._cursorX += processedChar.length;
+            this.refresh();
         }
 
         processBackspace() {
@@ -407,7 +427,6 @@
 
         processNewLine() {
             if (this._lines.length >= this._maxLines) {
-                // Don't add new line if at max
                 return;
             }
 
@@ -423,28 +442,24 @@
 
         drawCursor() {
             if (this._cursorVisible) {
-                const maxVisibleLines = Math.floor(
-                    (this.height - this.padding * 2) / this.lineHeight()
-                );
-                const startLine = Math.max(
-                    0,
-                    this._lines.length - maxVisibleLines
-                );
-                const visibleLine = this._cursorY - startLine;
-
+                const visibleLine = this._cursorY - this._visibleStartLine;
                 const line = this._lines[this._cursorY];
-                const cursorX =
-                    this.padding +
-                    this.textWidth(line.substring(0, this._cursorX));
-                const cursorY = this.padding + visibleLine * this.lineHeight();
-
-                this.contents.fillRect(
-                    cursorX,
-                    cursorY + this.lineHeight() - 2,
-                    10,
-                    2,
-                    ColorManager.normalColor()
-                );
+                
+                // Only draw cursor if the line is currently visible
+                if (visibleLine >= 0 && visibleLine < Math.floor((this.height - this.padding * 2) / this.lineHeight())) {
+                    const cursorX = 
+                        this.padding +
+                        this.textWidth(line.substring(0, this._cursorX));
+                    const cursorY = this.padding + visibleLine * this.lineHeight();
+        
+                    this.contents.fillRect(
+                        cursorX,
+                        cursorY + this.lineHeight() - 2,
+                        10,
+                        2,
+                        ColorManager.normalColor()
+                    );
+                }
             }
         }
 
