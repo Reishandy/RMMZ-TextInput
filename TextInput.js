@@ -93,6 +93,7 @@
  * @desc Maximum number of lines allowed. Default is 10 if left empty.
  * @min 1
  * @max 100
+ * @default 10
  */
 
 (() => {
