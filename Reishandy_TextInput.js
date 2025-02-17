@@ -43,6 +43,7 @@
  *      - Variable ID: The game variable to store the input text
  *      - Label Text: The text shown above the input box
  *      - Max Lines: Maximum number of lines allowed (1-100)
+ *    - Note: If the text input is empty, it returns the number 0 so that it can be used in conditional branches.
  *
  * 2. SetTextVariable
  *    - Sets the value of a game variable to a specific text.
