@@ -1,6 +1,6 @@
 /*:
  * @target MZ
- * @plugindesc v1.0.2 A simple multi-line text input system for RPG Maker MZ
+ * @plugindesc v1.0.3 A simple multi-line text input system for RPG Maker MZ
  * @author Reishandy
  *
  * @param InputWidth
@@ -20,7 +20,7 @@
  * @default 50
  *
  * @help
- * TextInput.js - Version 1.0.2
+ * Reishandy_TextInput.js - Version 1.0.3
  * =======================================================================
  *
  * Description:
@@ -35,17 +35,25 @@
  * - Cursor navigation using arrow keys or touch
  * - Variable storage for input text
  *
- * Plugin Command:
- * OpenTextInput
- * Parameters:
- *   - Variable ID: The game variable to store the input text
- *   - Label Text: The text shown above the input box
- *   - Max Lines: Maximum number of lines allowed (1-100)
+ * Plugin Commands:
+ * ----------------
+ * 1. OpenTextInput
+ *    - Opens a text input box and stores the result in a variable.
+ *    - Parameters:
+ *      - Variable ID: The game variable to store the input text
+ *      - Label Text: The text shown above the input box
+ *      - Max Lines: Maximum number of lines allowed (1-100)
+ *
+ * 2. SetTextVariable
+ *    - Sets the value of a game variable to a specific text.
+ *    - Parameters:
+ *      - Variable ID: The variable that will store the text.
+ *      - Text: The text to store in the variable.
  *
  * Usage Example in Event:
  * =====================
  * 1. Add a "Plugin Command" to your event
- * 2. Select "TextInput" -> "OpenTextInput"
+ * 2. Select "Reishandy_TextInput" -> "OpenTextInput"
  * 3. Set parameters:
  *    - Variable ID: Choose the variable to store the text
  *    - Label: "Enter your message:"
@@ -57,7 +65,7 @@
  * - The text input is handled using an HTML input element
  * - The input element is hidden and positioned off-screen
  * - The text input is processed in real-time and displayed in the window
- * - It is not very optimized 
+ * - It is not very optimized
  *
  * Compatibility:
  * - RPG Maker MZ
@@ -90,6 +98,21 @@
  * @min 1
  * @max 100
  * @default 10
+ *
+ * @command SetTextVariable
+ * @text Set Text Variable
+ * @desc Sets the value of a game variable to a specific text.
+ *
+ * @arg variableId
+ * @type variable
+ * @text Variable ID
+ * @desc The variable that will store the text.
+ *
+ * @arg text
+ * @type string
+ * @text Text
+ * @desc The text to store in the variable.
+ * @default 
  */
 
 (() => {
@@ -99,7 +122,7 @@
     // Plugin Parameters
     //-------------------------------------------------------------------------
 
-    const PLUGIN_NAME = "TextInput";
+    const PLUGIN_NAME = "Reishandy_TextInput";
     const params = PluginManager.parameters(PLUGIN_NAME);
     const INPUT_WIDTH_PERCENT = Number(params["InputWidth"]) / 100;
     const INPUT_HEIGHT_PERCENT = Number(params["InputHeight"]) / 100;
@@ -120,6 +143,12 @@
         // Push the text input scene and prepare it with provided parameters
         SceneManager.push(Scene_TextInput);
         SceneManager.prepareNextScene(variableId, label, maxLines);
+    });
+
+    PluginManager.registerCommand(PLUGIN_NAME, "SetTextVariable", (args) => {
+        const variableId = Number(args.variableId);
+        const text = args.text || 0; // Default to 0 int if empty, for compatibility with conditional branches
+        $gameVariables.setValue(variableId, text);
     });
 
     //-------------------------------------------------------------------------
@@ -222,7 +251,7 @@
          * Saves the entered text to the specified game variable and exits the scene.
          */
         onInputOk() {
-            const text = this._inputWindow.inputText();
+            const text = this._inputWindow.inputText() || 0; // Default to 0 int if empty, for compatibility with conditional branches
             $gameVariables.setValue(this._variableId, text);
             this.popScene();
         }
