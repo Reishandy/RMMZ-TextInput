@@ -1,6 +1,6 @@
 /*:
  * @target MZ
- * @plugindesc v1.0.3 A simple multi-line text input system for RPG Maker MZ
+ * @plugindesc v1.0.4 - A simple multi-line text input system for RPG Maker MZ
  * @author Reishandy
  *
  * @param InputWidth
@@ -20,7 +20,7 @@
  * @default 50
  *
  * @help
- * Reishandy_TextInput.js - Version 1.0.3
+ * Reishandy_TextInput.js - Version 1.0.4
  * =======================================================================
  *
  * Description:
@@ -70,7 +70,7 @@
  *
  * Compatibility:
  * - RPG Maker MZ
- * - Works with both desktop and mobile browsers
+ * - Works with both desktop and mobile
  *
  * Terms of Use:
  * Free for both commercial and non-commercial projects.
@@ -113,7 +113,7 @@
  * @type string
  * @text Text
  * @desc The text to store in the variable.
- * @default 
+ * @default
  */
 
 (() => {
@@ -197,18 +197,35 @@
         }
 
         /**
-         * Creates the window that displays the label above the input.
+         * Creates the label window with the specified text.
          */
         createLabelWindow() {
             const width = Graphics.boxWidth * INPUT_WIDTH_PERCENT;
-            const height = Graphics.boxHeight * 0.12;
+            
+            // Calculate text dimensions using a temporary window
+            const tempWindow = new Window_Base(new Rectangle(0, 0, width, this.calcWindowHeight(1)));
+            const textSize = tempWindow.textSizeEx(this._label);
+            const textHeight = textSize.height;
+            const textWidth = textSize.width;
+            const padding = tempWindow.padding * 2;
+            const height = textHeight + padding;
+            tempWindow.destroy();
+
             const x = (Graphics.boxWidth - width) / 2;
 
-            this._labelWindow = new Window_Base(
-                new Rectangle(x, this._positions.labelY, width, height)
-            );
-            this._labelWindow.drawText(this._label, 0, 0, width, "center");
+            this._labelWindow = new Window_Base(new Rectangle(x, this._positions.labelY, width, height));
+            
+            // Calculate the starting position for the text to be centered
+            const textX = Math.max(0, (width - padding - textWidth) / 2);
+            const textY = (height - padding - textHeight) / 2;
+            
+            this._labelWindow.drawTextEx(this._label, textX, textY, width);
             this.addWindow(this._labelWindow);
+
+            // Recalculate input and button positions based on the actual label height
+            this._positions.inputY = this._positions.labelY + height + 10;
+            this._positions.buttonY = this._positions.inputY + 
+                (Graphics.boxHeight * INPUT_HEIGHT_PERCENT) + 20;
         }
 
         /**
@@ -233,8 +250,18 @@
          * Creates the OK button window and assigns its handler.
          */
         createOkButton() {
-            const width = Graphics.boxWidth * 0.2;
-            const height = Graphics.boxHeight * 0.13;
+            // Calculate base dimensions using a temporary window
+            const tempWindow = new Window_Base(new Rectangle(0, 0, 200, this.calcWindowHeight(1)));
+            const checkmark = "✔";
+            const textWidth = tempWindow.textWidth(checkmark);
+            const textHeight = tempWindow.lineHeight();
+            const padding = tempWindow.padding * 3;
+            
+            // Set minimum dimensions while allowing for content-based sizing
+            const width = Math.max(Graphics.boxWidth * 0.15, textWidth + padding + 48);
+            const height = textHeight + padding;
+            tempWindow.destroy();
+
             const x = (Graphics.boxWidth - width) / 2;
 
             this._okButton = new Window_OkButton(
@@ -243,6 +270,7 @@
                 width,
                 height
             );
+            
             this._okButton.setHandler("ok", this.onInputOk.bind(this));
             this.addWindow(this._okButton);
         }
@@ -808,7 +836,7 @@
 
     class Window_OkButton extends Window_Command {
         /**
-         * Constructs the OK button window.
+         * Constructs the OK button window with centered text and proper sizing.
          * @param {number} x - x-coordinate.
          * @param {number} y - y-coordinate.
          * @param {number} width - Width of the button.
@@ -818,14 +846,14 @@
             super(new Rectangle(x, y, width, height));
             this.refresh();
         }
-
+    
         /**
-         * Defines the command list. In this case, only a check mark is needed.
+         * Defines the command list with a localized "OK" text.
          */
         makeCommandList() {
-            this.addCommand("✓", "ok");
+            this.addCommand("✔", "ok");
         }
-
+    
         /**
          * Updates the button, processing touch input only.
          */
@@ -833,16 +861,24 @@
             super.update();
             if (this.active && TouchInput.isTriggered()) {
                 if (this.isTouchedInside(TouchInput.x, TouchInput.y)) {
+                    this.playCursorSound();
                     this.callOkHandler();
                 }
             }
         }
-
+    
+        /**
+         * Plays a sound effect when button is pressed.
+         */
+        playCursorSound() {
+            SoundManager.playOk();
+        }
+    
         /**
          * Checks if a given (x, y) coordinate is inside the button area.
-         * @param {number} x
-         * @param {number} y
-         * @returns {boolean}
+         * @param {number} x - The x coordinate to check
+         * @param {number} y - The y coordinate to check
+         * @returns {boolean} True if the coordinates are inside the button
          */
         isTouchedInside(x, y) {
             return (
@@ -852,12 +888,12 @@
                 y < this.y + this.height
             );
         }
-
+    
         /**
          * Overrides default keyboard handling to disable accidental triggering.
          */
         processHandling() {
-            // Intentionally empty: disable keyboard input for the OK button.
+            // Intentionally empty: disable keyboard input for the OK button
         }
     }
 
