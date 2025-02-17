@@ -1,29 +1,43 @@
-# RMMZ-TextInput
+# RMMZ-TextInput v1.0.3
 
-## A Text Input Plugin for RPG Maker MZ
+## 📝 A Multi-line Text Input System for RPG Maker MZ
 
-A simple multi-line text input system that works on both desktop and mobile devices with keyboard and touch support.
+A robust text input plugin that provides seamless text entry on both desktop and mobile platforms, featuring full keyboard and touch support.
 
 ![Showcase](showcase.png)
 
-## 🌟 Features
+## ✨ Key Features
 
-- 📝 Multi-line text input with customizable maximum lines
-- 🏷️ Custom label text above the input field
-- ✨ RPG Maker styled OK button for confirmation
-- 📱 Mobile-friendly with proper keyboard support
-- ⌨️ Full keyboard navigation support
-- 🖱️ Mouse/touch cursor positioning
-- 🔄 Automatic text wrapping
-- 💾 Variable storage integration
+- **Multi-line Text Input**
+  - Customizable line limits
+  - Automatic text wrapping
+  - IME support for international text
 
-## 📥 Installation
+- **User Interface**
+  - Custom label text
+  - RPG Maker styled windows
+  - Confirmation button
+  - Visual cursor with blinking effect
 
-1. Download `TextInput.js`
-2. Place it in your project's `js/plugins` folder
-3. Enable the plugin in RPG Maker MZ's plugin manager
+- **Input Methods**
+  - Full keyboard navigation
+  - Touch/mouse cursor positioning
+  - Mobile keyboard optimization
+  - Arrow key support
 
-## 🔧 Configuration
+- **Integration**
+  - Variable storage system
+  - Plugin command interface
+  - Customizable dimensions
+  - Event system compatibility
+
+## 🛠️ Installation
+
+1. Download `Reishandy_TextInput.js`
+2. Place in your project's `js/plugins` folder
+3. Enable via Plugin Manager
+
+## ⚙️ Configuration
 
 ### Plugin Parameters
 
@@ -34,13 +48,21 @@ A simple multi-line text input system that works on both desktop and mobile devi
 
 ### Plugin Commands
 
-In your events, use the `OpenTextInput` plugin command:
-
+#### 1. OpenTextInput
 ```javascript
-OpenTextInput
-- Variable ID: [Game Variable to store text]
-- Label Text: [Text shown above input]
-- Max Lines: [Maximum lines allowed (1-100)]
+{
+  variableId: 1,      // Game variable to store result
+  label: "Enter text:", // Display text above input
+  maxLines: 10        // Maximum allowed lines (1-100)
+}
+```
+
+#### 2. SetTextVariable
+```javascript
+{
+  variableId: 1,   // Target variable
+  text: "Content"  // Text to store
+}
 ```
 
 ## 📖 Usage Example
@@ -57,33 +79,23 @@ Max Lines: 5
 
 ![Command](command.png)
 
-## 🔍 Technical Details
+## 📱 Device Support
 
-- Hidden password-type input for optimal mobile keyboard handling
-- Escaped character support
-- Auto-scrolling for long text
-- Efficient cursor management
-- Touch/mouse position detection
-- Mobile-friendly keyboard focus
+- ✅ Windows/Mac/Linux
+- ✅ Mobile Browsers
+- ✅ Desktop Browsers
+- ✅ Touch Devices
 
-## ⚡ Performance
+## 🤝 Compatibility
 
-The plugin uses optimized rendering and event handling to ensure smooth operation even with large amounts of text.
+- RPG Maker MZ
+- Should be compatible with most other plugins
 
-## 💻 Compatibility
+## 📃 Terms of Use
 
-- ✅ RPG Maker MZ v1.0.0+
-- ✅ Desktop (Windows, MacOS, Linux) (should be anyways)
-- ✅ Desktop browsers (Chrome, Firefox, Safari, Edge)
-- ✅ Mobile browsers (iOS Safari, Android Chrome)
-- ✅ Compatible with most other plugins
-
-## 🤝 Contributing
-
-Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+- Free for commercial use
+- Free for non-commercial use
+- Credit appreciated but not required
 
 ## 📄 License
 
