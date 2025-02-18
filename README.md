@@ -1,4 +1,4 @@
-# RMMZ-TextInput v1.0.3
+# RMMZ-TextInput
 
 ## 📝 A Multi-line Text Input System for RPG Maker MZ
 
