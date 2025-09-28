@@ -1,6 +1,6 @@
 /*:
  * @target MZ
- * @plugindesc v1.0.6 - A simple multi-line text input system for RPG Maker MZ
+ * @plugindesc v1.0.9 - A simple multi-line text input system for RPG Maker MZ
  * @author Reishandy
  *
  * @param InputWidth
@@ -24,15 +24,59 @@
  * @text Input save help text
  * @desc The text shown below the ok button as a help text, use double backslashes to escape. e.g. \c[1] \v[1] \n[1]
  * @default Press \c[1]Shift+Enter\c[0] to save input
- * 
+ *
  * @param OkButtonText
  * @type string
  * @text OK Button Text
  * @desc The text displayed on the OK button.
  * @default ✔
  *
+ * @param EnableOkSound
+ * @type boolean
+ * @text Enable OK Sound
+ * @desc Play sound when OK button is pressed.
+ * @default true
+ *
+ * @param OkSound
+ * @type struct<Sound>
+ * @text OK Sound
+ * @desc Sound played when OK button is pressed (requires EnableOkSound = true).
+ *
+ * @param EnableErrorSound
+ * @type boolean
+ * @text Enable Error Sound
+ * @desc Play sound when character limit is reached.
+ * @default true
+ *
+ * @param ErrorSound
+ * @type struct<Sound>
+ * @text Error Sound
+ * @desc Sound played when character limit is reached (requires EnableErrorSound = true).
+ *
+ * @param EnableCursorSound
+ * @type boolean
+ * @text Enable Cursor Sound
+ * @desc Play sound when typing characters.
+ * @default true
+ *
+ * @param CursorSound
+ * @type struct<Sound>
+ * @text Cursor Sound
+ * @desc Sound played when typing characters (requires EnableCursorSound = true).
+ *
+ * @param EnableCancelSound
+ * @type boolean
+ * @text Enable Cancel Sound
+ * @desc Play sound when backspace is pressed.
+ * @default true
+ *
+ * @param CancelSound
+ * @type struct<Sound>
+ * @text Cancel Sound
+ * @desc Sound played when backspace is pressed (requires EnableCancelSound = true).
+ *
  * @help
- * Reishandy_TextInput.js - Version 1.0.6
+ * Reishandy_TextInput.js - Version 1.0.9
  * =======================================================================
  *
  * Description:
@@ -46,6 +90,7 @@
  * - Mobile-friendly with proper keyboard support
  * - Cursor navigation using arrow keys or touch
  * - Variable storage for input text
+ * - Customizable sound effects
  *
  * Plugin Commands:
  * ----------------
@@ -127,6 +172,61 @@
  * @desc The text to store in the variable.
  * @desc The text to store in the variable.
  * @default
+ *
+ * @command OpenNameInput
+ * @text Open Name Input
+ * @desc Opens a single-line text input box for actor name with actor face display.
+ *
+ * @arg actorId
+ * @type actor
+ * @text Actor ID
+ * @desc The actor whose name will be changed.
+ *
+ * @arg label
+ * @type string
+ * @text Label Text
+ * @desc The label displayed above the input box.
+ * @default Enter name:
+ *
+ * @arg defaultMaxCharacters
+ * @type number
+ * @text Default Max Characters
+ * @desc Maximum number of characters allowed in name input. Default is 12.
+ * @min 1
+ * @max 32
+ * @default 12
+ */
+
+/*~struct~Sound:
+ * @param name
+ * @type string
+ * @text Sound Name
+ * @desc The name of the sound file (without extension).
+ * @default
+ *
+ * @param volume
+ * @type number
+ * @min 0
+ * @max 100
+ * @text Volume
+ * @desc The volume of the sound (0-100).
+ * @default 90
+ *
+ * @param pitch
+ * @type number
+ * @min 50
+ * @max 150
+ * @text Pitch
+ * @desc The pitch of the sound (50-150).
+ * @default 100
+ *
+ * @param pan
+ * @type number
+ * @min -100
+ * @max 100
+ * @text Pan
+ * @desc The pan of the sound (-100 to 100).
+ * @default 0
  */
 
 (() => {
@@ -142,7 +242,117 @@
     const INPUT_HEIGHT_PERCENT = Number(params["InputHeight"]) / 100;
     // If not provided, default max lines is 10
     const DEFAULT_MAX_LINES = Number(params["DefaultMaxLines"] || 10);
-    const INPUT_SAVE_HELP_TEXT = String(params["InputSaveHelpText"]) || "Press \\c[1]Shift+Enter\\c[0] to save input";
+    const INPUT_SAVE_HELP_TEXT =
+        String(params["InputSaveHelpText"]) ||
+        "Press \\c[1]Shift+Enter\\c[0] to save input";
+
+    // Sound parameters
+    const ENABLE_OK_SOUND = params["EnableOkSound"] === "true";
+    const ENABLE_ERROR_SOUND = params["EnableErrorSound"] === "true";
+    const ENABLE_CURSOR_SOUND = params["EnableCursorSound"] === "true";
+    const ENABLE_CANCEL_SOUND = params["EnableCancelSound"] === "true";
+
+    // Parse sound structures
+    const OK_SOUND = parseSoundStruct(params["OkSound"]);
+    const ERROR_SOUND = parseSoundStruct(params["ErrorSound"]);
+    const CURSOR_SOUND = parseSoundStruct(params["CursorSound"]);
+    const CANCEL_SOUND = parseSoundStruct(params["CancelSound"]);
+
+    /**
+     * Parses a sound structure from plugin parameters
+     * @param {string} soundParam - The sound parameter string
+     * @returns {object} Sound configuration object
+     */
+    function parseSoundStruct(soundParam) {
+        if (!soundParam) {
+            return { name: "", volume: 90, pitch: 100, pan: 0 };
+        }
+        
+        const soundData = JSON.parse(soundParam || "{}");
+        return {
+            name: soundData.name || "",
+            volume: Number(soundData.volume || 90),
+            pitch: Number(soundData.pitch || 100),
+            pan: Number(soundData.pan || 0)
+        };
+    }
+
+    //-------------------------------------------------------------------------
+    // Sound Manager Extension
+    //-------------------------------------------------------------------------
+
+    /**
+     * Extended SoundManager for custom sound effects
+     */
+    const TextInputSoundManager = {
+        /**
+         * Plays the OK sound if enabled
+         */
+        playOkSound() {
+            if (ENABLE_OK_SOUND && OK_SOUND.name) {
+                AudioManager.playSe({
+                    name: OK_SOUND.name,
+                    volume: OK_SOUND.volume,
+                    pitch: OK_SOUND.pitch,
+                    pan: OK_SOUND.pan
+                });
+            } else if (ENABLE_OK_SOUND) {
+                // Fallback to default OK sound
+                SoundManager.playOk();
+            }
+        },
+
+        /**
+         * Plays the error sound if enabled
+         */
+        playErrorSound() {
+            if (ENABLE_ERROR_SOUND && ERROR_SOUND.name) {
+                AudioManager.playSe({
+                    name: ERROR_SOUND.name,
+                    volume: ERROR_SOUND.volume,
+                    pitch: ERROR_SOUND.pitch,
+                    pan: ERROR_SOUND.pan
+                });
+            } else if (ENABLE_ERROR_SOUND) {
+                // Fallback to default buzzer sound
+                SoundManager.playBuzzer();
+            }
+        },
+
+        /**
+         * Plays the cursor sound if enabled
+         */
+        playCursorSound() {
+            if (ENABLE_CURSOR_SOUND && CURSOR_SOUND.name) {
+                AudioManager.playSe({
+                    name: CURSOR_SOUND.name,
+                    volume: CURSOR_SOUND.volume,
+                    pitch: CURSOR_SOUND.pitch,
+                    pan: CURSOR_SOUND.pan
+                });
+            } else if (ENABLE_CURSOR_SOUND) {
+                // Fallback to default cursor sound
+                SoundManager.playCursor();
+            }
+        },
+
+        /**
+         * Plays the cancel sound if enabled
+         */
+        playCancelSound() {
+            if (ENABLE_CANCEL_SOUND && CANCEL_SOUND.name) {
+                AudioManager.playSe({
+                    name: CANCEL_SOUND.name,
+                    volume: CANCEL_SOUND.volume,
+                    pitch: CANCEL_SOUND.pitch,
+                    pan: CANCEL_SOUND.pan
+                });
+            } else if (ENABLE_CANCEL_SOUND) {
+                // Fallback to default cancel sound
+                SoundManager.playCancel();
+            }
+        }
+    };
 
     //-------------------------------------------------------------------------
     // Plugin Command Registration
@@ -164,6 +374,19 @@
         const variableId = Number(args.variableId);
         const text = args.text || 0; // Default to 0 int if empty, for compatibility with conditional branches
         $gameVariables.setValue(variableId, text);
+    });
+
+    PluginManager.registerCommand(PLUGIN_NAME, "OpenNameInput", (args) => {
+        const actorId = Number(args.actorId);
+        const label = args.label || "Enter name:";
+        const maxChars = Number(args.defaultMaxCharacters || 12);
+        // Push the name input scene and prepare it with provided parameters
+        SceneManager.push(Scene_NameInput);
+        SceneManager.prepareNextScene(
+            $gameActors.actor(actorId),
+            label,
+            maxChars
+        );
     });
 
     //-------------------------------------------------------------------------
@@ -190,6 +413,48 @@
             this.createLabelWindow();
             this.createInputWindow();
             this.createOkButton();
+            this.setupClickHandler();
+        }
+
+        /**
+         * Sets up a click handler to refocus the input when clicking outside windows
+         */
+        setupClickHandler() {
+            this._boundHandleClick = this.handleClick.bind(this);
+            document.addEventListener('click', this._boundHandleClick);
+        }
+
+        /**
+         * Handles click events to refocus input when clicking outside save window
+         * @param {MouseEvent} event - The click event
+         */
+        handleClick(event) {
+            // Check if click is outside the save window
+            if (this._okButton && !this.isClickInWindow(event, this._okButton)) {
+                // Refocus the input
+                if (this._inputWindow && this._inputWindow.focusHtmlInput) {
+                    this._inputWindow.focusHtmlInput();
+                }
+            }
+        }
+
+        /**
+         * Checks if a click event occurred within a specific window
+         * @param {MouseEvent} event - The click event
+         * @param {Window} window - The window to check against
+         * @returns {boolean} True if click is within the window
+         */
+        isClickInWindow(event, window) {
+            if (!window || !window.element) {
+                return false; // Return false if the window or its element is undefined
+            }
+            const rect = window.element.getBoundingClientRect();
+            return (
+                event.clientX >= rect.left &&
+                event.clientX <= rect.right &&
+                event.clientY >= rect.top &&
+                event.clientY <= rect.bottom
+            );
         }
 
         /**
@@ -200,13 +465,13 @@
             const inputHeight = Graphics.boxHeight * INPUT_HEIGHT_PERCENT;
             const buttonHeight = Graphics.boxHeight * 0.13;
             // Total height including padding between windows
-            const totalHeight = labelHeight + inputHeight + buttonHeight + 20;
+            const totalHeight = labelHeight + inputHeight + buttonHeight + 40;
             const startY = (Graphics.boxHeight - totalHeight) / 2;
 
             this._positions = {
                 labelY: startY,
                 inputY: startY + labelHeight + 10,
-                buttonY: startY + labelHeight + inputHeight + 20,
+                buttonY: startY + labelHeight + inputHeight,
             };
         }
 
@@ -245,7 +510,7 @@
             this._positions.buttonY =
                 this._positions.inputY +
                 Graphics.boxHeight * INPUT_HEIGHT_PERCENT +
-                20;
+                10;
         }
 
         /**
@@ -307,11 +572,165 @@
         }
 
         terminate() {
+            // Remove the click event listener
+            if (this._boundHandleClick) {
+                document.removeEventListener('click', this._boundHandleClick);
+                this._boundHandleClick = null;
+            }
+            
             super.terminate();
             // Ensure the HTML input element is properly cleaned up
             if (this._inputWindow) {
                 this._inputWindow.destroy();
             }
+        }
+    }
+
+    class Scene_NameInput extends Scene_MenuBase {
+        prepare(actor, label, maxChars) {
+            this._label = label;
+            this._actor = actor;
+            this._maxChars = maxChars;
+        }
+
+        create() {
+            super.create();
+            this.createWindowLayer();
+            this.calculateWindowPositions();
+            this.createLabelWindow();
+            this.createInputWindow();
+            this.createOkButton();
+            this.setupClickHandler();
+        }
+
+        /**
+         * Sets up a click handler to refocus the input when clicking outside windows
+         */
+        setupClickHandler() {
+            this._boundHandleClick = this.handleClick.bind(this);
+            document.addEventListener('click', this._boundHandleClick);
+        }
+
+        /**
+         * Handles click events to refocus input when clicking outside save window
+         * @param {MouseEvent} event - The click event
+         */
+        handleClick(event) {
+            // Check if click is outside the save window
+            if (this._okButton && !this.isClickInWindow(event, this._okButton)) {
+                // Refocus the input
+                if (this._inputWindow && this._inputWindow.focusHtmlInput) {
+                    this._inputWindow.focusHtmlInput();
+                }
+            }
+        }
+
+        /**
+         * Checks if a click event occurred within a specific window
+         * @param {MouseEvent} event - The click event
+         * @param {Window} window - The window to check against
+         * @returns {boolean} True if click is within the window
+         */
+        isClickInWindow(event, window) {
+            if (!window || !window.element) {
+                return false; // Return false if the window or its element is undefined
+            }
+            const rect = window.element.getBoundingClientRect();
+            return (
+                event.clientX >= rect.left &&
+                event.clientX <= rect.right &&
+                event.clientY >= rect.top &&
+                event.clientY <= rect.bottom
+            );
+        }
+
+        calculateWindowPositions() {
+            const labelHeight = Graphics.boxHeight * 0.12;
+            // Set height to match face height plus padding
+            const inputHeight = ImageManager.faceHeight + 20;
+            const buttonHeight = Graphics.boxHeight * 0.13;
+            const totalHeight = labelHeight + inputHeight + buttonHeight + 40;
+            const startY = (Graphics.boxHeight - totalHeight) / 2;
+
+            this._positions = {
+                labelY: startY,
+                inputY: startY + labelHeight + 10,
+                buttonY: startY + labelHeight + inputHeight + 20,
+            };
+        }
+
+        createLabelWindow() {
+            const width = Graphics.boxWidth * INPUT_WIDTH_PERCENT;
+            const x = (Graphics.boxWidth - width) / 2;
+            const height = this.calcWindowHeight(1);
+
+            this._labelWindow = new Window_Base(
+                new Rectangle(x, this._positions.labelY, width, height)
+            );
+            this._labelWindow.drawText(this._label, 0, 0, width, "center");
+            this.addWindow(this._labelWindow);
+        }
+
+        createInputWindow() {
+            const width = Graphics.boxWidth * INPUT_WIDTH_PERCENT;
+            // Set height to match face height plus padding
+            const height = ImageManager.faceHeight + 20;
+            const x = (Graphics.boxWidth - width) / 2;
+
+            this._inputWindow = new Window_NameInput(
+                x,
+                this._positions.inputY,
+                width,
+                height,
+                this._actor,
+                this._maxChars
+            );
+            this.addWindow(this._inputWindow);
+        }
+
+        createOkButton() {
+            // Calculate base dimensions using a temporary window
+            const tempWindow = new Window_Base(
+                new Rectangle(0, 0, 200, this.calcWindowHeight(1))
+            );
+            const textHeight = tempWindow.lineHeight();
+            const helpWidth = tempWindow.textWidth(INPUT_SAVE_HELP_TEXT);
+            const padding = tempWindow.padding * 2;
+
+            // Set minimum dimensions while allowing for content-based sizing
+            const width = Math.max(Graphics.boxWidth * 0.15, helpWidth + 20);
+            const height = textHeight + padding + 20;
+            tempWindow.destroy();
+
+            const x = (Graphics.boxWidth - width) / 2;
+
+            this._okButton = new Window_OkButton(
+                x,
+                this._positions.buttonY,
+                width,
+                height
+            );
+
+            this._okButton.setHandler("ok", this.onInputOk.bind(this));
+            this.addWindow(this._okButton);
+        }
+
+        onInputOk() {
+            const name = this._inputWindow.inputText().trim();
+            if (name) {
+                this._actor.setName(name);
+                this.popScene();
+            }
+        }
+
+        terminate() {
+            // Remove the click event listener
+            if (this._boundHandleClick) {
+                document.removeEventListener('click', this._boundHandleClick);
+                this._boundHandleClick = null;
+            }
+            
+            super.terminate();
         }
     }
 
@@ -610,6 +1029,7 @@
             // Insert the character into the current line.
             this._lines[this._cursorY] = potentialLine;
             this._cursorX += char.length;
+            TextInputSoundManager.playCursorSound();
             this.refresh();
         }
 
@@ -632,6 +1052,7 @@
                 this._lines.splice(this._cursorY, 1);
                 this._cursorY--;
             }
+            TextInputSoundManager.playCancelSound();
             this.refresh();
         }
 
@@ -843,6 +1264,13 @@
         }
 
         /**
+         * Plays the OK sound
+         */
+        playOkSound() {
+            TextInputSoundManager.playOkSound();
+        }
+
+        /**
          * Triggers the OK button action from the scene.
          */
         triggerOk() {
@@ -850,6 +1278,114 @@
             if (scene && typeof scene.onInputOk === "function") {
                 scene.onInputOk();
             }
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    // Window for Name Input
+    //-------------------------------------------------------------------------
+
+    class Window_NameInput extends Window_TextInput {
+        initialize(x, y, width, height, actor, maxChars) {
+            this._actor = actor;
+            this._maxChars = maxChars;
+            super.initialize(x, y, width, height, 1); // maxLines = 1
+
+            // Set initial text to actor's current name
+            this._lines[0] = this._actor.name();
+            this._cursorX = this._lines[0].length;
+
+            this.refresh();
+        }
+
+        refresh() {
+            this.contents.clear();
+            this.drawActorFace();
+            this.drawTextLines();
+            this.drawCursor();
+        }
+
+        drawActorFace() {
+            const faceWidth = ImageManager.faceWidth;
+            const faceHeight = ImageManager.faceHeight;
+            const padding = this.padding;
+
+            // Draw face on the left side
+            this.drawFace(
+                this._actor.faceName(),
+                this._actor.faceIndex(),
+                padding,
+                padding,
+                faceWidth,
+                faceHeight
+            );
+        }
+
+        drawTextLines() {
+            const faceWidth = ImageManager.faceWidth;
+            const padding = 8; // Reduced padding from default
+    
+            // Calculate center position for text horizontally
+            const availableWidth = this.width - (faceWidth + padding * 4);
+            const line = this._lines[0] || "";
+            const textWidth = this.textWidth(line);
+            const textStartX = faceWidth + padding * 2 + Math.max(0, (availableWidth - textWidth) / 2);
+    
+            const textY = padding;
+    
+            this.drawText(
+                line,
+                textStartX,
+                textY, // Removed extra padding
+                availableWidth,
+                'left'
+            );
+        }
+    
+        drawCursor() {
+            if (!this._cursorVisible) return;
+    
+            const line = this._lines[this._cursorY];
+            const faceWidth = ImageManager.faceWidth;
+            const padding = 8;
+    
+            const availableWidth = this.width - (faceWidth + padding * 4);
+            const textWidth = this.textWidth(line);
+            const textStartX = faceWidth + padding * 2 + Math.max(0, (availableWidth - textWidth) / 2);
+    
+            const textY = padding;
+            const cursorX = textStartX + this.textWidth(line.substring(0, this._cursorX));
+    
+            this.contents.fillRect(
+                cursorX,
+                textY + this.lineHeight() - 2,
+                10,
+                2,
+                ColorManager.normalColor()
+            );
+        }
+
+        processChar(char) {
+            const currentText = this._lines[0] || "";
+            if (currentText.length >= this._maxChars) {
+                TextInputSoundManager.playErrorSound(); // Play error sound
+                return;
+            }
+            super.processChar(char);
+        }
+
+        isTouchedInside() {
+            const faceWidth = ImageManager.faceWidth;
+            const padding = this.padding;
+            const touchX = TouchInput.x - this.x - (faceWidth + padding * 2);
+            const touchY = TouchInput.y - this.y - this.padding;
+
+            return (
+                touchX >= 0 &&
+                touchX < this.width - (faceWidth + padding * 2) &&
+                touchY >= 0 &&
+                touchY < this.height
+            );
         }
     }
 
@@ -918,7 +1454,7 @@
          * Plays a sound effect when button is pressed.
          */
         playCursorSound() {
-            SoundManager.playOk();
+            TextInputSoundManager.playOkSound();
         }
 
         /**
@@ -950,10 +1486,10 @@
 
     // Extend SceneManager to pass parameters to the next scene
     const _SceneManager_prepareNextScene = SceneManager.prepareNextScene;
-    SceneManager.prepareNextScene = function (variableId, label, maxLines) {
+    SceneManager.prepareNextScene = function (...args) {
         _SceneManager_prepareNextScene.call(this);
         if (this._nextScene && typeof this._nextScene.prepare === "function") {
-            this._nextScene.prepare(variableId, label, maxLines);
+            this._nextScene.prepare(...args);
         }
     };
 })();
